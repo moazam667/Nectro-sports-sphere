@@ -5,31 +5,51 @@ import { useRouter } from 'next/navigation';
 import { Navigation } from '@/components/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { mockTeams } from '@/lib/mock-data';
+import { fetchTeams } from '@/lib/api';
 import { Trophy, MapPin, Users, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { Team } from '@/lib/mock-data';
 
 export default function TeamsPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
+      return;
     }
+
+    fetchTeams()
+      .then(setTeams)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [isAuthenticated, router]);
 
   if (!user) return null;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <p className="text-center text-muted-foreground">Loading teams...</p>
+        </main>
+      </div>
+    );
+  }
+
   // Group teams by sport
-  const teamsBySport = mockTeams.reduce(
+  const teamsBySport = teams.reduce(
     (acc, team) => {
       if (!acc[team.sport]) acc[team.sport] = [];
       acc[team.sport].push(team);
       return acc;
     },
-    {} as Record<string, typeof mockTeams>
+    {} as Record<string, Team[]>
   );
 
   return (
